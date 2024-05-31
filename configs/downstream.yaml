@@ -19,6 +19,7 @@ downstream_tasks:
   - secondary_structure_pdb_8
 
 all_models:
+  - DFrolova/MULAN-small
   - mulan_small
   - mulan_esm2
   - mulan_saprot

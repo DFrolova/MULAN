@@ -42,7 +42,10 @@ if __name__ == "__main__":
     adapter_path = config["trained_adapter_name"]
 
     LOGGER.info(f'Initializing model...')
-    results_dir = os.path.join(results_folder, config['trained_adapter_name'])
+    if results_folder == 'none':
+        results_dir = config['trained_adapter_name']
+    else:
+        results_dir = os.path.join(results_folder, config['trained_adapter_name'])
     print('results_dir', results_dir)
     # checkpoint_folder = sorted(os.listdir(results_dir))[-1]
     # checkpoint_path = os.path.join(results_dir, checkpoint_folder)

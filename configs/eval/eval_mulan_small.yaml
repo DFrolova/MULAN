@@ -1,5 +1,5 @@
 # Data paths
-results_folder: '/workspace/data/docking/lang_model/data/lora_train_results/'
+results_folder: 'none' # if you use local path with checkpoint, please provide the path where it is stored
 use_foldseek_sequences: False
 
 # model
@@ -11,7 +11,7 @@ mask_angle_inputs_with_plddt: True
 predict_contacts: 'none'
 batch_limit: 12000
 
-trained_adapter_name: 'mulan_small'
+trained_adapter_name: 'DFrolova/MULAN-small' #'mulan_small'
 
 # downstream data
 calc_thermostability: True
