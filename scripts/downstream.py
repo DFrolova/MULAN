@@ -7,6 +7,7 @@ import torch
 import numpy as np
 from scipy import stats
 import random
+from argparse import ArgumentParser
 import warnings
 warnings.simplefilter('ignore')
 from pathlib import Path
@@ -26,6 +27,8 @@ from functools import partial
 from deli import load, save_json, save
 from sklearn.preprocessing import StandardScaler
 
+from mulan.utils import load_config
+
 
 
 def load_prot_level_data(emb_path1, split, agg_type1):
@@ -43,10 +46,7 @@ def load_prot_level_data(emb_path1, split, agg_type1):
     return names1, embeddings1
 
 
-def load_humanppi_data(emb_path1, split, agg_type1, emb_path2, concat_names):
-
-    if emb_path2 is not None:
-        print('WARNING: humanppi data loader is not meant to load two embeddings!')
+def load_humanppi_data(emb_path1, split, agg_type1, concat_names):
 
     embeddings1 = load(os.path.join(emb_path1, f'{split}{agg_type1}_embeddings.npy.gz'))
     if embeddings1.dtype != np.float32:
@@ -202,9 +202,6 @@ def compute_metrics_protein_level_classification(p: EvalPrediction, id2tag: dict
     else:
         return {
             "accuracy": seq_metrics.accuracy_score(out_label_list, preds_list),
-            # "precision": precision_score(out_label_list, preds_list),
-            # "recall": recall_score(out_label_list, preds_list),
-            # "f1": f1_score(out_label_list, preds_list),
         }
 
 
@@ -522,27 +519,25 @@ def run_training(lr, conv_dropout, internal_embedding, last_embedding, experimen
     
 
 if __name__ == "__main__":
+    parser = ArgumentParser(description="Read file form Command line.")
+    parser.add_argument("-c", "--config", dest="config_filename",
+                        required=True, help="config file")
+    args = parser.parse_args()
 
-    downstream_experiments = [
-        'thermostability',
-        # 'metal',
-        # 'humanppi',
-        # 'fluorescence',
-        # 'go',
-        # 'ss3_pdb',
-        # 'ss8_pdb',
-    ]
+    config = load_config(args.config_filename)
+    print(config)
+
+    downstream_datasets_path = config["downstream_datasets_path"]
+    downstream_experiments = config["downstream_tasks"]
+    all_models = config["all_models"]
 
     all_results = {}
     for downstream_experiment in downstream_experiments:
-        
-        if downstream_experiment == 'thermostability':
-            label_files = ['/workspace/data/docking/downstream_tasks/thermostability/id2label.json']
-            results_path = '/workspace/data/docking/downstream_tasks/thermostability/results'
-            emb_path_common = '/workspace/data/docking/downstream_tasks/downstream_datasets/thermostability/'
-            is_classifier = False
-            is_multilabel = False
-            param_grid = { # thermostability
+        exp_path = os.path.join(downstream_datasets_path, downstream_experiment)
+        results_path = os.path.join(exp_path, 'downstream_results')
+        emb_path_common = os.path.join(exp_path, 'embeddings')
+        label_files = [os.path.join(exp_path, 'id2label.json')]
+        param_grid = { # base grid
                 'batch_size': 4096 * 2,
                 'lr': [5e-5],
                 'conv_dropout': [0.1, 0.2], 
@@ -550,12 +545,13 @@ if __name__ == "__main__":
                 'last_embedding': [512, 256],
                 'num_epochs': [200],
             }
+        
+        if downstream_experiment == 'thermostability':
+            is_classifier = False
+            is_multilabel = False
 
         elif downstream_experiment == 'go':
-            label_files = [f'/workspace/data/docking/downstream_tasks/go/{ont}_id2label.json' 
-                        for ont in ['cc', 'mf', 'bp']]
-            results_path = '/workspace/data/docking/downstream_tasks/go/results'
-            emb_path_common = '/workspace/data/docking/downstream_tasks/downstream_datasets/go/'
+            label_files = [os.path.join(exp_path, f'{ont}_id2label.json') for ont in ['cc', 'mf', 'bp']]
             is_classifier = True
             is_multilabel = True
             param_grid = { # go
@@ -568,54 +564,22 @@ if __name__ == "__main__":
             }
 
         elif downstream_experiment == 'metal':
-            label_files = ['/workspace/data/docking/downstream_tasks/metal/id2label.json']
-            results_path = '/workspace/data/docking/downstream_tasks/metal/results'
-            emb_path_common = '/workspace/data/docking/downstream_tasks/downstream_datasets/metal/'
             is_classifier = True
             is_multilabel = False
-            param_grid = { # metal
-                'batch_size': 4096 * 2,
-                'lr': [5e-5],
-                'conv_dropout': [0.1, 0.2], 
-                'internal_embedding': [1536, 1024, 512],
-                'last_embedding': [512, 256],
-                'num_epochs': [200],
-            }
 
         elif downstream_experiment == 'humanppi':
-            label_files = ['/workspace/data/docking/downstream_tasks/humanppi/id2label.json']
-            results_path = '/workspace/data/docking/downstream_tasks/humanppi/results'
-            emb_path_common = '/workspace/data/docking/downstream_tasks/downstream_datasets/humanppi/'
             is_classifier = True
             is_multilabel = False
-            param_grid = { # humanppi
-                'batch_size': 4096 * 2,
-                'lr': [5e-6],
-                'conv_dropout': [0.2], 
-                'internal_embedding': [1536, 1024, 512],
-                'last_embedding': [512, 256],
-                'num_epochs': [200],
-            }
+            param_grid['conv_dropout'] = [0.2]
 
         elif downstream_experiment == 'fluorescence':
-            label_files = ['/workspace/data/docking/downstream_tasks/fluorescence/id2label.json']
-            results_path = '/workspace/data/docking/downstream_tasks/fluorescence/results'
-            emb_path_common = '/workspace/data/docking/downstream_tasks/downstream_datasets/fluorescence/'
             is_classifier = False
             is_multilabel = False
-            param_grid = { # fluorescence
-                'batch_size': 4096 * 2,
-                'lr': [5e-5],
-                'conv_dropout': [0.1, 0.2], 
-                'internal_embedding': [1536, 1024, 512],
-                'last_embedding': [512, 256],
-                'num_epochs': [200],
-            }
 
-        elif downstream_experiment == 'ss3_pdb':
-            label_files = ['/workspace/data/docking/downstream_tasks/secondary_structure_pdb/id2label_pdb_ssp3.json']
-            results_path = '/workspace/data/docking/downstream_tasks/secondary_structure_pdb/results3'
-            emb_path_common = '/workspace/data/docking/downstream_tasks/downstream_datasets/secondary_structure_pdb/'
+        elif downstream_experiment.startswith('secondary_structure_pdb'):
+            exp_path = os.path.join(downstream_datasets_path, 'secondary_structure_pdb')
+            emb_path_common = os.path.join(exp_path, 'embeddings')
+
             is_classifier = True
             is_multilabel = False
             param_grid = { # ss
@@ -626,35 +590,23 @@ if __name__ == "__main__":
                 'last_embedding': [512],
                 'num_epochs': [20],
             }
+            
+            if downstream_experiment == 'secondary_structure_pdb_3':
+                label_files = [os.path.join(exp_path, 'id2label_pdb_ssp3.json')]
+                results_path = os.path.join(exp_path, 'downstream_results_3state')
 
-        elif downstream_experiment == 'ss8_pdb':
-            label_files = ['/workspace/data/docking/downstream_tasks/secondary_structure_pdb/id2label_pdb_ssp8.json']
-            results_path = '/workspace/data/docking/downstream_tasks/secondary_structure_pdb/results8'
-            emb_path_common = '/workspace/data/docking/downstream_tasks/downstream_datasets/secondary_structure_pdb/'
-            is_classifier = True
-            is_multilabel = False
-            param_grid = { # ss
-                'batch_size': 4096 * 2,
-                'lr': [1e-4],
-                'conv_dropout': [0.1], 
-                'internal_embedding': [1024],
-                'last_embedding': [512],
-                'num_epochs': [20],
-            }
-        print('Embeddings:', emb_path_common)
+            elif downstream_experiment == 'secondary_structure_pdb_8':
+                label_files = [os.path.join(exp_path, 'id2label_pdb_ssp8.json')]
+                results_path = os.path.join(exp_path, 'downstream_results_8state')
+
         os.makedirs(results_path, exist_ok=True)
-
-        all_experiments = [
-            'mulan_small',
-            'mulan_esm2',
-            'mulan_saprot',
-        ]
+        print('Embeddings:', emb_path_common)
 
         seed = 0
         agg_type = '_avg'
-        for model_i, model_name in enumerate(all_experiments):
+        for model_i, model_name in enumerate(all_models):
             emb_path = os.path.join(emb_path_common, model_name)
-            print(f'START: {model_i + 1}/{len(all_experiments)} {model_name}')
+            print(f'START: {model_i + 1}/{len(all_models)} {model_name}')
             for label_file in label_files:
                 print(label_file)
                 exp_name, exp_metrics, best_test_metric = run_cv_experiment(label_file, emb_path, 

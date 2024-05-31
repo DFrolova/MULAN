@@ -15,7 +15,8 @@ class StructEsmForMaskedLM(EsmForMaskedLM):
 
     def __init__(self, config, num_struct_embeddings_layers=1, struct_data_dim=7, 
                  use_struct_embeddings=True,
-                 predict_contacts=False, predict_angles=False,
+                 predict_contacts='none', 
+                 predict_angles=False,
                  mask_angle_inputs_with_plddt=True):
         super().__init__(config)
 

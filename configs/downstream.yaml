@@ -1,0 +1,24 @@
+# provide the correct path where all datasets and computed embeddings are stored
+downstream_datasets_path: '/workspace/data/docking/downstream_tasks/mulan_datasets'
+
+calc_thermostability: True
+calc_go: True
+calc_metal: True 
+calc_humanppi: True
+calc_fluorescence: True
+calc_ss_pdb_3state: True
+calc_ss_pdb_8state: True
+
+downstream_tasks:
+  - thermostability
+  - metal
+  - humanppi
+  - fluorescence
+  - go
+  - secondary_structure_pdb_3
+  - secondary_structure_pdb_8
+
+all_models:
+  - mulan_small
+  - mulan_esm2
+  - mulan_saprot

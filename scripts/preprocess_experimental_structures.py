@@ -1,5 +1,6 @@
 from tqdm.auto import tqdm
 import os
+from argparse import ArgumentParser
 
 from Bio.PDB.PDBParser import PDBParser
 from Bio.PDB.internal_coords import *
@@ -63,11 +64,15 @@ def processPdb(pdb, chain, out_dir, process, cif_path, use_cif, chain_in_filenam
 
 
 if __name__ == '__main__':
-    # path with all pdb structures
-    initial_structure_path = '/workspace/data/docking/test_structures/PDB/'  # '<path to folder with protein structures>'
+    parser = ArgumentParser(description="Read file form Command line.")
+    parser.add_argument("-i", "--initial_structure_path", dest="init_path",
+                        required=True, help="path with all pdb structures")
+    parser.add_argument("-o", "--preprocessed_structure_path", dest="out_path",
+                        required=True, help="path where preprocessed pdb structures will be stored")
+    args = parser.parse_args()
 
-    # path where preprocessed pdb structures will be stored
-    preprocessed_structure_path = '/workspace/data/docking/test_structures/PDB/tmp_preprocessed_structures/' #'<path to where to save preprocessed structures>'
+    initial_structure_path = args.init_path
+    preprocessed_structure_path = args.out_path
 
     os.makedirs(preprocessed_structure_path, exist_ok=False)
     all_ids = [fname for fname in sorted(os.listdir(initial_structure_path)) 

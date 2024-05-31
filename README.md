@@ -52,7 +52,7 @@ conda install biopython=1.78
 ```
 Then, you run the script, providing correct paths for `initial_structure_path` and `preprocessed_structure_path`.
 ```bash
-python scripts/preprocess_experimental_structures.py
+python scripts/preprocess_experimental_structures.py -i <initial_structure_path> -o <preprocessed_structure_path>
 ```
 
 
@@ -107,15 +107,13 @@ During preprocessing, foldseek sequences are also extracted.
 This is done because SaProt-initialized MULAN uses Foldseek.
 If you use only ESM-2, you can pass argument `extract_foldseek_in_tokenizer=False` into the `ProteinDataset` class.
 
-3) **Load the model.** Download the pre-trained model from [Zenodo](TODO) and put in into the checkpoint path, which you need to specify in the code. 
-Then, load the model:
+3) **Load the model.** Load the pre-trained model from Huggingface [MULAN-small](https://huggingface.co/DFrolova/MULAN-small).
 ```python
 from mulan.model import StructEsmForMaskedLM
 
 
-checkpoint_path = <> # path to the folder containing `config.json` and `model.safetensors` files.
 model = StructEsmForMaskedLM.from_pretrained(
-    checkpoint_path,
+    'DFrolova/MULAN-small',
     device_map="auto",
 )
 device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
@@ -203,7 +201,7 @@ Also, you need to set correct model name for the `trained_adapter_name` argument
 ## Downstream task evaluation
 Finally, to run predictions for all types of downstream tasks, you need to run the script 
 ```bash
-python scripts/downstream_tasks/downstream.py
+python scripts/downstream.py
 ```
 This script requires the pre-computed and saved protein embeddings for all downstream tasks.
 

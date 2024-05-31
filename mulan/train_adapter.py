@@ -15,7 +15,6 @@ from transformers import (
     AutoTokenizer,
 )
 import wandb
-import yaml
 import numpy as np
 
 from mulan.dataset import ProteinDataset, data_collate_fn_dynamic
@@ -25,15 +24,9 @@ from mulan.metrics import (
     preprocess_logits_for_metrics,
 )
 from mulan.model import StructEsmForMaskedLM
+from mulan.utils import load_config
 
 LOGGER = logging.getLogger(__name__)
-
-
-# Function to load yaml configuration file
-def load_config(config_fname):
-    with open(config_fname) as file:
-        config = yaml.safe_load(file)
-    return config
 
 
 if __name__ == "__main__":
@@ -43,8 +36,6 @@ if __name__ == "__main__":
                         required=True, help="config file")
     parser.add_argument("-n", "--exp-name", dest="exp_name", required=True,
                         help="exp name for results path")
-    parser.add_argument("--model", dest="model_path",
-                        required=False, default=None, help="device no")
     args = parser.parse_args()
 
     warnings.filterwarnings("ignore")
@@ -59,9 +50,9 @@ if __name__ == "__main__":
 
     results_folder = config["results_folder"]
     protein_data_path = config["protein_data_path"]  # raw_data_path
-    saved_dataset_path = os.path.join(config["saved_dataset_path"], config["dataset_type"])
-    saved_dataset_path_AFDB = os.path.join(config["saved_dataset_path_AFDB"], config["dataset_type"])
-    split_ids_file = config["split_ids_file"]
+    saved_dataset_path = config["saved_dataset_path"]
+    saved_dataset_path_AFDB = config["saved_dataset_path_AFDB"]
+    split_ids_file = None
     use_foldseek_sequences = config["use_foldseek_sequences"]
 
     min_protein_length = config["min_protein_length"]
@@ -77,10 +68,7 @@ if __name__ == "__main__":
 
 
     adapter_path = config["trained_adapter_name"]
-    if config["base_checkpoint"] == 'None':
-        base_checkpoint = config["esm_checkpoint"]
-    else:
-        base_checkpoint = config["base_checkpoint"]
+    base_checkpoint = config["esm_checkpoint"]
 
     now = datetime.now()
     date_time = now.strftime("%m.%d.%Y-%H:%M:%S")

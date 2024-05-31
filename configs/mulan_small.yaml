@@ -4,13 +4,10 @@ protein_data_path: None
 
 saved_dataset_path: '/workspace/data/docking/lang_model/data/'
 saved_dataset_path_AFDB: '/workspace/data/docking/lang_model/AFDB_data/'
-split_ids_file: '/workspace/data/docking/lang_model/data/train_val_test_split_small.json'
-dataset_type: 'new_dataset_ext'
 use_foldseek_sequences: False
 
 # model
 esm_checkpoint: 'facebook/esm2_t6_8M_UR50D'
-base_checkpoint: None 
 min_protein_length: 30 
 max_protein_length: -1
 num_struct_embeddings_layers: 1

@@ -1,18 +1,14 @@
 # Data paths
 results_folder: '/workspace/data/docking/lang_model/data/lora_train_results/'
-
-dataset_type: 'new_dataset_ext'
 use_foldseek_sequences: True
 
 # model
 esm_checkpoint: 'westlake-repl/SaProt_35M_AF2'
-base_checkpoint: None
 num_struct_embeddings_layers: 1 
 use_struct_embeddings: True 
 mask_angle_inputs_with_plddt: True
 
 batch_limit: 12000 
-
 predict_contacts: 'none'
 
 trained_adapter_name: 'saprot12_pos_masked_afdb17_1e5_10epoch'
@@ -25,15 +21,4 @@ calc_humanppi: True
 calc_fluorescence: True
 calc_ss_pdb: True
 
-saved_thermostability_dataset_path: '/workspace/data/docking/downstream_tasks/init_datasets/thermostability/'
-downstream_thermostability_dataset_path: '/workspace/data/docking/downstream_tasks/downstream_datasets/thermostability'
-saved_go_dataset_path: '/workspace/data/docking/downstream_tasks/init_datasets/go/'
-downstream_go_dataset_path: '/workspace/data/docking/downstream_tasks/downstream_datasets/go'
-saved_metal_dataset_path: '/workspace/data/docking/downstream_tasks/init_datasets/metal/'
-downstream_metal_dataset_path: '/workspace/data/docking/downstream_tasks/downstream_datasets/metal'
-saved_humanppi_dataset_path: '/workspace/data/docking/downstream_tasks/init_datasets/humanppi/'
-downstream_humanppi_dataset_path: '/workspace/data/docking/downstream_tasks/downstream_datasets/humanppi'
-saved_fluorescence_dataset_path: '/workspace/data/docking/downstream_tasks/init_datasets/fluorescence/'
-downstream_fluorescence_dataset_path: '/workspace/data/docking/downstream_tasks/downstream_datasets/fluorescence'
-saved_ss_pdb_dataset_path: '/workspace/data/docking/downstream_tasks/init_datasets/secondary_structure_pdb/'
-downstream_ss_pdb_dataset_path: '/workspace/data/docking/downstream_tasks/downstream_datasets/secondary_structure_pdb'
+downstream_datasets_path: '/workspace/data/docking/downstream_tasks/mulan_datasets'
