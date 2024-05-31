@@ -176,15 +176,21 @@ Medium-sized MULAN models will be added within several months.
 
 ## Training dataset and downstream datasets
 ### Training dataset
-The raw training data can be downloaded from the [ProstT5 repository](https://github.com/mheinzinger/ProstT5?tab=readme-ov-file#-training-data).
+The raw training data (AF-17M) can be downloaded from the [ProstT5 repository](https://github.com/mheinzinger/ProstT5?tab=readme-ov-file#-training-data).
 The angle information should be extracted from these structures using the script detailed below. 
-Also, all angles should be preprocessed using the Tokenizer class for the faster use during training.
+Also, all angles should be preprocessed using the `Tokenizer` class for the faster use during training.
+
+The small dataset (AF-0.5M) that was used for MULAN-small training is released in [DFrolova/MULAN_datasets](https://huggingface.co/datasets/DFrolova/MULAN_datasets).
+You should manually download AF05_pretraining.zip.
+
+
 ### Downstream datasets
-All training and downstream datasets are publicly available. 
+All downstream datasets that are used in our paper are publicly available. 
 The raw downstream dataset structures can be downloaded from the AlphaFold database by their corresponding UniProt IDs.
 
-The preprocessed downstream datasets are available for download [here](TODO dataset LINK).
-Each dataset folder `id2label.json` file with targets for each dataset split and a folder `dataset` with the preprocessed dataset ready to pass into the `ProteinDataset` class.
+The preprocessed downstream datasets are available for download at [DFrolova/MULAN_datasets](https://huggingface.co/datasets/DFrolova/MULAN_datasets).
+You should manually download each downstream task archive.
+Each dataset folder contains `id2label.json` file with targets for each dataset split and a folder `dataset` with the preprocessed dataset ready to pass into the `ProteinDataset` class.
 
 
 ## Inference
@@ -201,11 +207,11 @@ Also, you need to set correct model name for the `trained_adapter_name` argument
 ## Downstream task evaluation
 Finally, to run predictions for all types of downstream tasks, you need to run the script 
 ```bash
-python scripts/downstream.py
+python scripts/downstream.py -c configs/downstream.yaml
 ```
 This script requires the pre-computed and saved protein embeddings for all downstream tasks.
-
-The preprocessing of available data is done and saved to the hard drive inside the `Tokenizer` class.
+You need to specify the correct path to the folder with downstream datasets as well as the desired downstream tasks you want to evaluate.
+Also, you should specify the model names that were used to produce embeddings (names of folders with embeddings for downstream tasks).
 
 
 ## Training
@@ -221,5 +227,4 @@ The name that you pass during training is used to create the output folder with 
 
 ### Citation
 If you use MULAN in your work, please cite our paper:
-
 (TODO BIORXIV citation)
