@@ -66,7 +66,6 @@ import torch
 from torch.utils.data import DataLoader
 from mulan.dataset import ProteinDataset, data_collate_fn_dynamic
 
-
 protein_data_path = <> # specify the path to the folder with pdb files you need to pass to the model
 saved_dataset_path = <> # specify the path where to save the preprocessed dataset
 use_foldseek_sequences = False # True if use SaProt initialization for MULAN. Else False
@@ -81,22 +80,6 @@ dataset = ProteinDataset(
     # extract_foldseek_in_tokenizer=False,
     is_experimental_structure=is_experimental_structure,
 )
-
-# Initialize dataloader
-def data_collator(x): 
-    if use_foldseek_sequences:
-        one_letter_aas = esm_tokenizer.all_tokens[5:] # TODO
-    else: 
-        one_letter_aas = dataset.tokenizer.one_letter_aas
-
-    return data_collate_fn_dynamic(x, 
-        esm_tokenizer=esm_tokenizer,
-        nan_value=np.deg2rad(dataset.tokenizer.nan_fill_value),
-        mask_inputs=False,
-        all_amino_acids=one_letter_aas,
-        use_foldseek_sequences=use_foldseek_sequences)
-
-dataloader = DataLoader(dataset, batch_size=1, shuffle=False, collate_fn=data_collator)
 ```
 
 Note that initializing dataset requires firstly to preprocess and tokenize all provided protein structures.
@@ -111,7 +94,6 @@ If you use only ESM-2, you can pass argument `extract_foldseek_in_tokenizer=Fals
 ```python
 from mulan.model import StructEsmForMaskedLM
 
-
 model = StructEsmForMaskedLM.from_pretrained(
     'DFrolova/MULAN-small',
     device_map="auto",
@@ -123,7 +105,6 @@ model.to(device)
 4) **Prepare the dataloader**
 ```python
 from mulan.model_utils import auto_detect_base_tokenizer
-
 
 esm_tokenizer = auto_detect_base_tokenizer(model.config, use_foldseek_sequences)
 
@@ -170,7 +151,7 @@ embeddings = embeddings.mean(dim=0)
 ```
 
 ## Pre-trained models
-The pre-trained model weights for MULAN-small are released in [Zenodo](TODO).
+The pre-trained model weights for MULAN-small are released in [DFrolova/MULAN-small](https://huggingface.co/DFrolova/MULAN-small).
 Medium-sized MULAN models will be added within several months.
 
 

@@ -2,7 +2,6 @@
 results_folder: '/workspace/data/lang_model/data/lora_train_results/'
 protein_data_path: None
 
-saved_dataset_path: '/workspace/data/PDB_processed/'
 saved_dataset_path_AFDB: '/workspace/data/AFDB_17M/'
 use_foldseek_sequences: True
 
@@ -31,7 +30,6 @@ warmup_ratio: 0.001
 learning_rate: 0.00001
 
 # trainer
-use_AFDB: True
 train_split: train
 lr_decrease_ratio: 0.2 
 

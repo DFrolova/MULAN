@@ -12,8 +12,6 @@ import saprot_embeddings
 
 if __name__ == "__main__":
     # task_name = 'thermostability'
-    # task_name = 'localization_deeploc'
-    # task_name = 'localization_deeploc_binary'
     # task_name = 'go'
     task_name = 'metal'
     # task_name = 'humanppi'

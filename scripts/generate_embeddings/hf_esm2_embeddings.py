@@ -130,6 +130,6 @@ def main(dataset_sequence_path, save_emb_path, emb_type):
 
 
 if __name__ == "__main__":
-    dataset_sequence_path = '/workspace/data/docking/downstream_tasks/localization_deeploc/id2seq_real.json'
-    save_emb_path = '/workspace/data/docking/downstream_tasks/downstream_datasets/localization_deeploc/hf_esm_12'
+    dataset_sequence_path = '/workspace/data/docking/downstream_tasks/thermostability/id2seq_real.json'
+    save_emb_path = '/workspace/data/docking/downstream_tasks/downstream_datasets/thermostability/hf_esm_12'
     main(dataset_sequence_path, save_emb_path)

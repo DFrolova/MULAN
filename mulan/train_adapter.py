@@ -50,7 +50,6 @@ if __name__ == "__main__":
 
     results_folder = config["results_folder"]
     protein_data_path = config["protein_data_path"]  # raw_data_path
-    saved_dataset_path = config["saved_dataset_path"]
     saved_dataset_path_AFDB = config["saved_dataset_path_AFDB"]
     split_ids_file = None
     use_foldseek_sequences = config["use_foldseek_sequences"]
@@ -84,12 +83,8 @@ if __name__ == "__main__":
 
     LOGGER.info(f'Initializing datasets...')
 
-    if config["use_AFDB"]:
-        real_saved_dataset_path = saved_dataset_path_AFDB
-        is_experimental_structure = False
-    else:
-        real_saved_dataset_path = saved_dataset_path
-        is_experimental_structure = True
+    real_saved_dataset_path = saved_dataset_path_AFDB
+    is_experimental_structure = False
 
     train_dataset = ProteinDataset(
         protein_data_path=protein_data_path, 

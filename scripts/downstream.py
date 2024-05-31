@@ -420,7 +420,7 @@ def run_cv_experiment(label_file, emb_path, agg_type, results_path, seed, param_
                         cur_metrics, cur_trainer = run_training(lr, conv_dropout, internal_embedding, last_embedding, 
                                     experiment, num_tokens, device, model_embed_dim, 
                                     training_dataset, val_dataset, is_classifier, is_multilabel, compute_metrics_fn,
-                                    target_metric, batch_size, num_epochs, log_steps) # TODO revert to val_dataset
+                                    target_metric, batch_size, num_epochs, log_steps)
                         print('CUR METRIC:', cur_metrics[metric_for_best_model])
                         print('cur best metric:', best_metric)
                         for i, split in enumerate(test_splits):
@@ -467,14 +467,14 @@ def run_training(lr, conv_dropout, internal_embedding, last_embedding, experimen
                  compute_metrics_fn, target_metric, batch_size, num_epochs, log_steps):
 
     training_args = TrainingArguments(
-        output_dir=f'/workspace/data/docking/ankh/results/results_{experiment}',
+        output_dir=os.path.join(results_path, 'checkpoints', f'checkpoints_{experiment}'),
         num_train_epochs=num_epochs,
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
         warmup_ratio=0.,
         learning_rate=lr,
         weight_decay=0.0,
-        logging_dir=f'/workspace/data/docking/ankh/logs/logs_{experiment}',
+        logging_dir=os.path.join(results_path, 'logs', f'logs_{experiment}'),
         do_train=True,
         do_eval=True,
         report_to='none',
@@ -485,7 +485,7 @@ def run_training(lr, conv_dropout, internal_embedding, last_embedding, experimen
         save_strategy='steps',
         save_steps=log_steps,
         save_total_limit=1,
-        gradient_accumulation_steps=1, # TODO test 16
+        gradient_accumulation_steps=1, 
         fp16=False,
         fp16_opt_level="02",
         run_name=experiment,
@@ -508,7 +508,7 @@ def run_training(lr, conv_dropout, internal_embedding, last_embedding, experimen
                            last_embedding=last_embedding),
         args=training_args,
         train_dataset=training_dataset,
-        eval_dataset=val_dataset, #val_dataset, # TODO revert
+        eval_dataset=val_dataset, 
         compute_metrics=compute_metrics_fn,
     )
 

@@ -146,8 +146,8 @@ class ProteinDataset(Dataset):
             else:
                 batched_angles.append(tensor_batch_angles)
 
-            self.plddts.append(tensor_batch_angles[:, 1:-1, 0]) # dummy for new_dataset2 TODO fix
-            self.coords.append(tensor_batch_angles[:, 1:-1, 1:4]) # dummy for new_dataset2 TODO fix
+            self.plddts.append(tensor_batch_angles[:, 1:-1, 0]) 
+            self.coords.append(tensor_batch_angles[:, 1:-1, 1:4]) 
 
         self.angles = batched_angles
 
