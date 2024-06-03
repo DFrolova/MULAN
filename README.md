@@ -1,6 +1,6 @@
 # MULAN: Multimodal Protein Language Model for Sequence and Structure Encoding
 
-This is an official implementation of the paper [MULAN: Multimodal Protein Language Model for Sequence and Structure Encoding](todo BIORXIV LINK).
+This is an official implementation of the paper [MULAN: Multimodal Protein Language Model for Sequence and Structure Encoding](https://www.biorxiv.org/content/10.1101/2024.05.30.596565v1).
 
 ## Overview
 MULAN is a MULtimodal encoder PLM for both sequence and ANgle-based structure processing. 
@@ -8,7 +8,6 @@ MULAN uses the pre-trained base PLM and has the Structure Adapter – a module w
 Our model uses ESM-2 architecture, initializing the base PLM from ESM-2 or SaProt models. 
 However, MULAN can be based on other PLMs.
 
-Visualization of the predictions of PatchCore3D and PatchCore3D pipelines compared to other methods.
 ![visualization](img/architecture.png)
 
 MULAN offers a cheap increase of the quality of the protein representations compared to the protein language models used to initialize it, which is illustrated on various downstream tasks.
@@ -208,4 +207,17 @@ The name that you pass during training is used to create the output folder with 
 
 ### Citation
 If you use MULAN in your work, please cite our paper:
-(TODO BIORXIV citation)
+
+```
+@article {Frolova2024.05.30.596565,
+	author = {Frolova, Daria and Pak, Marina and Litvin, Anna and Sharov, Ilya and Ivankov, Dmitry and Oseledets, Ivan},
+	title = {MULAN: Multimodal Protein Language Model for Sequence and Structure Encoding},
+	elocation-id = {2024.05.30.596565},
+	year = {2024},
+	doi = {10.1101/2024.05.30.596565},
+	publisher = {Cold Spring Harbor Laboratory},
+	URL = {https://www.biorxiv.org/content/early/2024/06/02/2024.05.30.596565},
+	eprint = {https://www.biorxiv.org/content/early/2024/06/02/2024.05.30.596565.full.pdf},
+	journal = {bioRxiv}
+}
+```
