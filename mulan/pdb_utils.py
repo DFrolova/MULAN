@@ -27,8 +27,6 @@ def getStructureObject(pdb_file, chain='A'): # if you supply the structure from 
     '''
     # parse pdb file as structure object
     structure = pdb_parser.get_structure('', pdb_file)
-    print('structure', structure)
-    print('structure[0]', structure[0])
     structure = structure[0][chain] 
     
     # format structure for angles retrieval
