@@ -108,31 +108,32 @@ class StructEsmForMaskedLM(EsmForMaskedLM):
 
         masked_lm_loss = None
         prediction_angles = None
-        prediction_scores = None
+
+        prediction_scores = self.lm_head(sequence_output)
+        prediction_scores = {'scores': prediction_scores}
+
+        if self.predict_angles:
+            prediction_angles = self.angle_regression_head(sequence_output)
+            prediction_angles = torch.sigmoid(prediction_angles)
+            prediction_scores['angles'] = prediction_angles
+
+        if self.predict_contacts != 'none':
+            prediction_scores[self.predict_contacts] = predicted_contacts
+
         if labels is not None and labels[0] is not None:
             ce_loss_fn = CrossEntropyLoss()
             labels, distance_matrices, angle_labels = labels
-
-            prediction_scores = self.lm_head(sequence_output)
             masked_lm_loss = ce_loss_fn(prediction_scores.view(-1, self.config.vocab_size), 
                                         labels.view(-1))
-            prediction_scores = {'scores': prediction_scores}
-
-            if self.predict_angles:
-                prediction_angles = self.angle_regression_head(sequence_output)
-                
+            
             if self.predict_angles:
                 angle_mask = angle_labels > -99.
-
-                prediction_angles = torch.sigmoid(prediction_angles)
-
                 mse_loss = torch.abs(angle_labels[angle_mask] - prediction_angles[angle_mask])
                 mse_loss[mse_loss > 0.5] = 1 - mse_loss[mse_loss > 0.5]
                 mse_loss = (mse_loss ** 2).mean()
 
                 mse_weight = 5 #5
                 masked_lm_loss += mse_weight * mse_loss
-                prediction_scores['angles'] = prediction_angles
  
             if self.predict_contacts != 'none':
                 contact_mask = distance_matrices != -1
@@ -149,11 +150,6 @@ class StructEsmForMaskedLM(EsmForMaskedLM):
 
                 contact_weight = 0.5 #0.5 
                 masked_lm_loss += contact_weight * contact_loss
-
-                prediction_scores[self.predict_contacts] = predicted_contacts
-
-        elif self.predict_contacts != 'none':
-            prediction_scores = {self.predict_contacts: predicted_contacts}
 
         ret_attns = None
         if output_attentions:
