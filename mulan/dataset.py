@@ -12,7 +12,6 @@ from mulan.tokenizer import Tokenizer
 
 class ProteinDataset(Dataset):
     def __init__(self, protein_data_path, 
-                 rot_len_full_path='rotamer_lengths_full.json', 
                  saved_dataset_path=None,
                  split_ids_file=None, 
                  split='test', 
@@ -28,8 +27,7 @@ class ProteinDataset(Dataset):
                  is_experimental_structure=False,
                  ):
 
-        self.tokenizer = Tokenizer(rot_len_full_path=rot_len_full_path, 
-                                   use_foldseek_sequences=use_foldseek_sequences)
+        self.tokenizer = Tokenizer(use_foldseek_sequences=use_foldseek_sequences)
         self.nan_value = np.deg2rad(self.tokenizer.nan_fill_value)
         self.pad_value = self.tokenizer.pad_value
         self.use_foldseek_sequences = use_foldseek_sequences

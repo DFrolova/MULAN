@@ -25,12 +25,14 @@ def preproc_df(data, rot_len, all_amino_acids):
 
 
 class Tokenizer():
-    def __init__(self, rot_len_full_path, use_foldseek_sequences):
+    def __init__(self, use_foldseek_sequences):
         self.all_amino_acids = ['ASN', 'TRP', 'GLY', 'ILE', 'ASP', 'VAL', 'LYS', 'PHE',
                                 'ARG', 'HIS', 'MET', 'THR', 'SER', 'GLN', 'LEU', 'ALA', 'CYS',
                                 'PRO', 'GLU', 'TYR']
 
-        self.rot_len_full = load_json(rot_len_full_path)
+        self.rot_len_full = {"N": 2, "W": 2, "G": 0, "I": 2, "D": 2, "V": 1, "K": 4, "F": 2, 
+                             "R": 5, "H": 2, "M": 3, "T": 1, "S": 1, "Q": 3, "L": 2, "A": 0, 
+                             "C": 1, "P": 2, "E": 3, "Y": 2, "X": 5}
         self.rot_len_full['X'] = 5
         self.one_letter_aas = list(self.rot_len_full.keys())
         self.nan_fill_value = 182
