@@ -209,15 +209,12 @@ The name that you pass during training is used to create the output folder with 
 If you use MULAN in your work, please cite our paper:
 
 ```
-@article {Frolova2024.05.30.596565,
-	author = {Frolova, Daria and Pak, Marina and Litvin, Anna and Sharov, Ilya and Ivankov, Dmitry and Oseledets, Ivan},
-	title = {MULAN: Multimodal Protein Language Model for Sequence and Structure Encoding},
-	elocation-id = {2024.05.30.596565},
-	year = {2024},
-	doi = {10.1101/2024.05.30.596565},
-	publisher = {Cold Spring Harbor Laboratory},
-	URL = {https://www.biorxiv.org/content/early/2024/06/02/2024.05.30.596565},
-	eprint = {https://www.biorxiv.org/content/early/2024/06/02/2024.05.30.596565.full.pdf},
-	journal = {bioRxiv}
+@article{frolova2024mulan,
+  title={MULAN: Multimodal Protein Language Model for Sequence and Structure Encoding},
+  author={Frolova, Daria and Pak, Marina and Litvin, Anna and Sharov, Ilya and Ivankov, Dmitry and Oseledets, Ivan},
+  journal={bioRxiv},
+  pages={2024--05},
+  year={2024},
+  publisher={Cold Spring Harbor Laboratory}
 }
 ```
