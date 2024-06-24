@@ -123,7 +123,7 @@ class StructEsmForMaskedLM(EsmForMaskedLM):
         if labels is not None and labels[0] is not None:
             ce_loss_fn = CrossEntropyLoss()
             labels, distance_matrices, angle_labels = labels
-            masked_lm_loss = ce_loss_fn(prediction_scores.view(-1, self.config.vocab_size), 
+            masked_lm_loss = ce_loss_fn(prediction_scores['scores'].view(-1, self.config.vocab_size), 
                                         labels.view(-1))
             
             if self.predict_angles:
@@ -132,7 +132,7 @@ class StructEsmForMaskedLM(EsmForMaskedLM):
                 mse_loss[mse_loss > 0.5] = 1 - mse_loss[mse_loss > 0.5]
                 mse_loss = (mse_loss ** 2).mean()
 
-                mse_weight = 5 #5
+                mse_weight = 5
                 masked_lm_loss += mse_weight * mse_loss
  
             if self.predict_contacts != 'none':
@@ -148,7 +148,7 @@ class StructEsmForMaskedLM(EsmForMaskedLM):
                 contact_loss = contact_loss_fn(predicted_contacts[contact_mask], 
                                                distance_matrices[contact_mask])
 
-                contact_weight = 0.5 #0.5 
+                contact_weight = 0.5
                 masked_lm_loss += contact_weight * contact_loss
 
         ret_attns = None
