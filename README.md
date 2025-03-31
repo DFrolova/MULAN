@@ -3,7 +3,7 @@
 This is an official implementation of the paper [MULAN: Multimodal Protein Language Model for Sequence and Structure Encoding](https://www.biorxiv.org/content/10.1101/2024.05.30.596565v1).
 
 ## News
-\textbf{31/03/2025} Added MULAN-ESM2 checkpoints for medium and large models, updated MULAN-small. Code update: MULAN now uses rotary positional embeddings and has improved quality. 
+**31/03/2025** Added MULAN-ESM2 checkpoints for medium and large models, updated MULAN-small. Code update: MULAN now uses rotary positional embeddings and has improved quality. 
 
 ## Overview
 MULAN is a MULtimodal encoder PLM for both sequence and ANgle-based structure processing. 
