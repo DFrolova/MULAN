@@ -5,7 +5,11 @@ from deli import load_json, save_json, save, load
 from tqdm.auto import tqdm
 import torch
 
-from Bio.PDB.Polypeptide import protein_letters_3to1
+try:
+    from Bio.PDB.Polypeptide import protein_letters_3to1
+except ImportError:
+    # pre 1.80
+    from Bio.PDB import protein_letters_3to1
 
 from mulan.pdb_utils import AnglesFromStructure, getStructureObject
 from mulan.foldseek_utils import get_struc_seq
@@ -66,7 +70,7 @@ class Tokenizer():
     def get_foldseek_seq(self, pdb_path, plddt_mask):
         # Extract the "A" chain from the pdb file and encode it into a struc_seq
         # pLDDT is used to mask low-confidence regions if "plddt_mask" is True
-        parsed_seqs = get_struc_seq("bin/foldseek", pdb_path, ["A"], plddt_mask=plddt_mask)["A"]
+        parsed_seqs = get_struc_seq("bin/foldseek", pdb_path, ["A"], plddt_mask=plddt_mask, process_id=5)["A"]
         seq, foldseek_seq, combined_seq = parsed_seqs
         return combined_seq
         

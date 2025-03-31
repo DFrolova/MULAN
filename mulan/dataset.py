@@ -3,10 +3,12 @@ import random
 
 import numpy as np
 import scipy
+from scipy.spatial.transform import Rotation as R
 import torch
 from torch.utils.data import Dataset
 from deli import load_json
 
+from transformers import T5TokenizerFast
 from mulan.tokenizer import Tokenizer
 
 
@@ -25,31 +27,37 @@ class ProteinDataset(Dataset):
                  use_foldseek_sequences=False,
                  extract_foldseek_in_tokenizer=True,
                  is_experimental_structure=False,
+                 add_foldseek_embeddings=False,
                  ):
+        
+        self.use_foldseek_sequences = use_foldseek_sequences
+        self.add_foldseek_embeddings = add_foldseek_embeddings
+        if self.add_foldseek_embeddings:
+            self.use_foldseek_sequences = True
+            print('Warning: set self.use_foldseek_sequences=True, because add_foldseek_embeddings is True')
 
-        self.tokenizer = Tokenizer(use_foldseek_sequences=use_foldseek_sequences)
+        self.tokenizer = Tokenizer(use_foldseek_sequences=self.use_foldseek_sequences)
         self.nan_value = np.deg2rad(self.tokenizer.nan_fill_value)
         self.pad_value = self.tokenizer.pad_value
-        self.use_foldseek_sequences = use_foldseek_sequences
 
         self.split = split
-
         self.predict_contacts = predict_contacts
-
         self.sequences, self.angles, self.protein_names = self.tokenizer.load_dataset(saved_dataset_path, 
-                                                                                      split)
+                                                                                      split)        
         print('INIT ANGLES', self.angles)
         if self.sequences is None:
+            print(split)
             if split_ids_file is not None:
                 protein_ids = load_json(split_ids_file)[split]
             else:
                 protein_ids = None
+
             self.tokenizer.save_dataset(protein_data_path, saved_dataset_path, split,
                                         is_experimental_structure=is_experimental_structure, 
                                         extract_foldseek=extract_foldseek_in_tokenizer, 
                                         protein_ids=protein_ids)
             self.sequences, self.angles, self.protein_names = self.tokenizer.load_dataset(saved_dataset_path, 
-                                                                                          split)
+                                                                                          split)        
         
         self.get_protein_length = lambda seq: int(len(seq) / 2) if self.use_foldseek_sequences else len(seq)
 
@@ -70,7 +78,7 @@ class ProteinDataset(Dataset):
         self.sequences = [seq for seq in self.sequences 
                          if self.get_protein_length(seq) >= min_protein_length 
                          and self.get_protein_length(seq) <= max_protein_length]
-        
+
         lengths = [self.get_protein_length(seq) for seq in self.sequences]
         print('Protein lengths after:', min(lengths), max(lengths))
         print('Check for lengths', len(self.sequences[0]), lengths[0], self.sequences[0])
@@ -82,10 +90,19 @@ class ProteinDataset(Dataset):
         self.form_batches(batch_limit)
         self.sampling_indices = list(range(len(self.sequences)))
 
+        if self.add_foldseek_embeddings:
+            # store separately sequences and fs_sequences
+            self.split_seq_folseek()
+
         print('self.angles', len(self.angles), self.angles[0].shape)
         print('self.plddts', len(self.plddts), self.plddts[0].shape) 
         print(self.plddts[0])
         print()
+
+    def split_seq_folseek(self):
+        print('Separate aa sequences and foldseek sequences')
+        self.fs_sequences = [[seq[1::2] for seq in seq_batch] for seq_batch in tqdm(self.sequences)]
+        self.sequences = [[seq[::2] for seq in seq_batch] for seq_batch in tqdm(self.sequences)]
 
     def get_sorted_batches(self, lengths, batch_limit):
         batch_indices = []
@@ -161,12 +178,18 @@ class ProteinDataset(Dataset):
             output += (torch.tensor(self.coords[i]), )
         else:
             output += ([], )
+        if self.add_foldseek_embeddings:
+            output += (self.fs_sequences[i], )
+        else:
+            output += ([], )
         return output
 
 
-def mask_inputs_(inputs, labels, special_tokens_mask, struct_inputs, 
-                esm_tokenizer, mlm_probability, struct_labels, 
-                all_amino_acid_ids, use_foldseek_sequences):
+def mask_inputs_(inputs, fs_inputs, labels, special_tokens_mask, struct_inputs, 
+                esm_tokenizer, fs_tokenizer, mlm_probability, struct_labels, 
+                all_amino_acid_ids, all_foldseek_token_ids, use_foldseek_sequences):
+    
+    add_foldseek_embeddings = fs_inputs is not None
 
     probability_matrix = torch.full(labels.shape, mlm_probability)
     probability_matrix.masked_fill_(special_tokens_mask.bool(), value=0.0)
@@ -186,6 +209,8 @@ def mask_inputs_(inputs, labels, special_tokens_mask, struct_inputs,
         inputs[indices_replaced] = torch.tensor(to_replace) #esm_tokenizer.mask_token_id
     else:
         inputs[indices_replaced] = esm_tokenizer.mask_token_id
+        if add_foldseek_embeddings:
+            fs_inputs[indices_replaced] = fs_tokenizer.mask_token_id
 
     # 10% of the time, we replace masked input tokens with random word
     indices_random = torch.bernoulli(torch.full(
@@ -195,6 +220,10 @@ def mask_inputs_(inputs, labels, special_tokens_mask, struct_inputs,
     random_words = all_amino_acid_ids[random_word_indices]
 
     inputs[indices_random] = random_words[indices_random]
+    if add_foldseek_embeddings:
+        random_word_indices_fs = torch.randint(len(all_foldseek_token_ids), labels.shape, dtype=torch.long)
+        random_words_fs = all_foldseek_token_ids[random_word_indices_fs]
+        fs_inputs[indices_random] = random_words_fs[indices_random]
     # The rest of the time (10% of the time) we keep the masked input tokens unchanged
 
     # mask the same angles and letters
@@ -210,7 +239,7 @@ def mask_inputs_(inputs, labels, special_tokens_mask, struct_inputs,
     struct_inputs.masked_fill_(angle_indices_replaced.unsqueeze(-1), value=-4.)
     struct_inputs[angle_indices_random] = replaced_angles
 
-    return inputs, labels, struct_inputs, struct_labels
+    return inputs, fs_inputs, labels, struct_inputs, struct_labels
 
 
 def data_collate_fn_dynamic(protein_parts_tuple, esm_tokenizer, nan_value, 
@@ -220,7 +249,8 @@ def data_collate_fn_dynamic(protein_parts_tuple, esm_tokenizer, nan_value,
                          mask_angle_inputs_with_plddt=True, 
                          max_prot_len=100000000000000,
                          predict_contacts='none',
-                         mlm_probability=0.15):
+                         mlm_probability=0.15,
+                         fs_tokenizer=None):
     
     get_protein_length = lambda seq: int(len(seq) / 2) if use_foldseek_sequences else len(seq)
 
@@ -230,6 +260,9 @@ def data_collate_fn_dynamic(protein_parts_tuple, esm_tokenizer, nan_value,
     struct_inputs = protein_parts_tuple[1]
     plddts = protein_parts_tuple[3]
     batch_coords = protein_parts_tuple[4]
+    fs_sequences = protein_parts_tuple[5]
+
+    add_foldseek_embeddings = len(fs_sequences) > 0 and fs_tokenizer is not None
 
     if use_foldseek_sequences:
         crop_multiplier = 2
@@ -242,6 +275,9 @@ def data_collate_fn_dynamic(protein_parts_tuple, esm_tokenizer, nan_value,
                          if get_protein_length(seq) > max_prot_len else 0 for seq in sequences]
         sequences = [seq[start_ind * crop_multiplier: (start_ind + max_prot_len) * crop_multiplier] 
                      for seq, start_ind in zip(sequences, start_indices)]
+        if add_foldseek_embeddings:
+            fs_sequences = [seq[start_ind * crop_multiplier: (start_ind + max_prot_len) * crop_multiplier] 
+                     for seq, start_ind in zip(fs_sequences, start_indices)]
 
         start_struct_padding = struct_inputs[:, :1].clone()
         end_struct_padding = struct_inputs[:, -1:].clone()
@@ -256,9 +292,14 @@ def data_collate_fn_dynamic(protein_parts_tuple, esm_tokenizer, nan_value,
 
     encoded = esm_tokenizer.batch_encode_plus(sequences, return_special_tokens_mask=True, 
                                               padding=True, return_tensors='pt')
+    if add_foldseek_embeddings:
+        encoded_fs = fs_tokenizer.batch_encode_plus(fs_sequences, return_special_tokens_mask=True, 
+                                                    padding=True, return_tensors='pt')
 
+    tokenizer_vocab = esm_tokenizer.get_vocab()
     if not use_foldseek_sequences:
-        unk_token_id = esm_tokenizer.token_to_id('X')
+        # unk_token_id = esm_tokenizer.token_to_id('X')
+        unk_token_id = tokenizer_vocab['X']
         # fill X tokens as special tokens
         encoded['special_tokens_mask'][encoded['input_ids'] == unk_token_id] = 1
 
@@ -288,28 +329,54 @@ def data_collate_fn_dynamic(protein_parts_tuple, esm_tokenizer, nan_value,
     struct_labels.masked_fill_(struct_inputs[:, :, :7] == nan_value, value=ignore_index)
     struct_labels.masked_fill_(struct_inputs[:, :, :7] == pad_value, value=ignore_index)
 
-    aa_mapping_edges = {esm_tokenizer.token_to_id(token): i for i, token in enumerate(all_amino_acids)}
-    all_amino_acid_ids = torch.tensor([uid for uid in aa_mapping_edges.keys() 
-                                        if uid != esm_tokenizer.token_to_id('X')])
-    aa_mapping_edges[esm_tokenizer.mask_token_id] = len(aa_mapping_edges)
+    all_amino_acid_ids = torch.tensor([tokenizer_vocab[token] for token in all_amino_acids
+                                    if token != 'X'])
 
     inputs = encoded['input_ids']
+    if add_foldseek_embeddings:
+        fs_inputs = encoded_fs['input_ids']
+        all_foldseek_letters = "pynwrqhgdlvtmfsaeikc"
+        all_foldseek_token_ids = torch.tensor([fs_tokenizer.token_to_id(token) 
+                                               for token in all_foldseek_letters])
+    else:
+        fs_inputs = None
+        all_foldseek_token_ids = None
+
     labels = None
+    if type(esm_tokenizer) == T5TokenizerFast:
+        struct_inputs = struct_inputs[:, 1:]
+
     if mask_inputs:
-        inputs, labels, struct_inputs, struct_labels = mask_inputs_(
-            encoded['input_ids'], encoded['input_ids'].clone(), encoded['special_tokens_mask'], 
-            struct_inputs, esm_tokenizer, mlm_probability, struct_labels, 
-            all_amino_acid_ids, use_foldseek_sequences)
-        
+        inputs, fs_inputs, labels, struct_inputs, struct_labels = mask_inputs_(
+            encoded['input_ids'], fs_inputs, encoded['input_ids'].clone(), 
+            encoded['special_tokens_mask'], 
+            struct_inputs, esm_tokenizer, fs_tokenizer, mlm_probability, struct_labels, 
+            all_amino_acid_ids, all_foldseek_token_ids, use_foldseek_sequences)
+
     # pad plddts
     padded_plddts = torch.ones_like(inputs) * pad_value
-    padded_plddts[:, 1:-1] = plddts
+    if type(esm_tokenizer) == T5TokenizerFast:
+        padded_plddts[:, :-1] = plddts
+    else:
+        padded_plddts[:, 1:-1] = plddts
 
     if mask_angle_inputs_with_plddt:
         bad_plddt_mask = padded_plddts <= 70.
         struct_inputs[bad_plddt_mask] = pad_value
 
-    struct_inputs = (struct_inputs, padded_plddts)
+
+    # apply random augmentation to batch_coords
+    if predict_contacts == 'dummy':
+        for i, seq in enumerate(sequences):
+            batch_coords[i, len(seq):] = 0
+        batch_coords = batch_coords - batch_coords.mean(axis=1).reshape(-1, 1, 3)
+
+        rot = R.random().as_matrix().astype(np.float32)
+        batch_coords = (batch_coords - batch_coords.mean(axis=1).reshape(-1, 1, 3)) @ rot.T
+        for i, seq in enumerate(sequences):
+            batch_coords[i, len(seq):] = 0
+
+    struct_inputs = (struct_inputs, padded_plddts, fs_inputs, batch_coords)
 
     labels = (labels, torch.tensor(distance_matrices), struct_labels)
     ret_dict = {'input_ids': inputs, 

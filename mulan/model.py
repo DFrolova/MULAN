@@ -17,14 +17,18 @@ class StructEsmForMaskedLM(EsmForMaskedLM):
                  use_struct_embeddings=True,
                  predict_contacts='none', 
                  predict_angles=False,
-                 mask_angle_inputs_with_plddt=True):
+                 mask_angle_inputs_with_plddt=True,
+                 add_foldseek_embeddings=False,
+                 fs_tokenizer=None):
         super().__init__(config)
 
         self.esm = StructEsmModel(config, num_struct_embeddings_layers=num_struct_embeddings_layers, 
                                   struct_data_dim=struct_data_dim, 
                                   use_struct_embeddings=use_struct_embeddings, 
                                   add_pooling_layer=False,
-                                  mask_angle_inputs_with_plddt=mask_angle_inputs_with_plddt)
+                                  mask_angle_inputs_with_plddt=mask_angle_inputs_with_plddt,
+                                  add_foldseek_embeddings=add_foldseek_embeddings,
+                                  fs_tokenizer=fs_tokenizer)
         self.lm_head = EsmLMHead(config)
         self.predict_contacts = predict_contacts
         self.predict_angles = predict_angles
@@ -37,7 +41,7 @@ class StructEsmForMaskedLM(EsmForMaskedLM):
                 layer_norm_eps=config.layer_norm_eps,
                 )
 
-        if self.predict_contacts != 'none':
+        if self.predict_contacts != 'none' and self.predict_contacts != 'dummy':
             self.contact_head = ContactPredictionHead(
                 in_features=config.num_hidden_layers * config.num_attention_heads, 
                 out_features=1 if self.predict_contacts == 'contact' else 5,
@@ -65,7 +69,8 @@ class StructEsmForMaskedLM(EsmForMaskedLM):
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
         predicted_contacts = None
-        if self.predict_contacts != 'none':
+        do_predict_contacts = self.predict_contacts != 'none' and self.predict_contacts != 'dummy'
+        if do_predict_contacts:
             outputs = self.esm(
                 input_ids,
                 struct_inputs=struct_inputs,
@@ -117,12 +122,13 @@ class StructEsmForMaskedLM(EsmForMaskedLM):
             prediction_angles = torch.sigmoid(prediction_angles)
             prediction_scores['angles'] = prediction_angles
 
-        if self.predict_contacts != 'none':
+        if do_predict_contacts:
             prediction_scores[self.predict_contacts] = predicted_contacts
 
         if labels is not None and labels[0] is not None:
             ce_loss_fn = CrossEntropyLoss()
             labels, distance_matrices, angle_labels = labels
+
             masked_lm_loss = ce_loss_fn(prediction_scores['scores'].view(-1, self.config.vocab_size), 
                                         labels.view(-1))
             
@@ -132,23 +138,23 @@ class StructEsmForMaskedLM(EsmForMaskedLM):
                 mse_loss[mse_loss > 0.5] = 1 - mse_loss[mse_loss > 0.5]
                 mse_loss = (mse_loss ** 2).mean()
 
-                mse_weight = 5
+                mse_weight = 5 #5
                 masked_lm_loss += mse_weight * mse_loss
  
-            if self.predict_contacts != 'none':
+            if do_predict_contacts:
                 contact_mask = distance_matrices != -1
 
                 if self.predict_contacts == 'contact':
                     contact_loss_fn = BCEWithLogitsLoss()
                 elif self.predict_contacts == 'distance':
                     contact_loss_fn = MSELoss()
-                else:
+                elif self.predict_contacts == 'bin_distance':
                     contact_loss_fn = CrossEntropyLoss()
-
+                
                 contact_loss = contact_loss_fn(predicted_contacts[contact_mask], 
                                                distance_matrices[contact_mask])
 
-                contact_weight = 0.5
+                contact_weight = 0.5 #5. 
                 masked_lm_loss += contact_weight * contact_loss
 
         ret_attns = None

@@ -1,25 +1,25 @@
 # Data paths
-results_folder: 'none' # if you use local path with checkpoint, please provide the path where it is stored
+results_folder: '/workspace/data/docking/lang_model/data/lora_train_results/'
 use_foldseek_sequences: False
 add_foldseek_embeddings: False
 
 # model
-esm_checkpoint: 'facebook/esm2_t6_8M_UR50D'
-num_struct_embeddings_layers: 1
+esm_checkpoint: 'facebook/esm2_t33_650M_UR50D'
+num_struct_embeddings_layers: 1 
 use_struct_embeddings: True 
 mask_angle_inputs_with_plddt: True
 
+batch_limit: 5000 
 predict_contacts: 'none'
-batch_limit: 12000
 
-trained_adapter_name: 'DFrolova/MULAN-small' #'mulan_small'
+trained_adapter_name: 'DFrolova/MULAN-ESM2-650M' 
 
 # downstream data
 calc_localization: True
 calc_localization_binary: True
 calc_thermostability: True
 calc_go: True
-calc_metal: True 
+calc_metal: True
 calc_humanppi: True
 calc_fluorescence: True
 calc_ss_pdb: False

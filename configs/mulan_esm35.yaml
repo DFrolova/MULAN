@@ -2,8 +2,9 @@
 results_folder: '/workspace/data/lang_model/data/lora_train_results/'
 protein_data_path: None
 
-saved_dataset_path_AFDB: '/workspace/data/AFDB_17M/'
+saved_dataset_path_AFDB: '/workspace/data/docking/lang_model/AFDB_data/new_dataset_ext/'
 use_foldseek_sequences: False
+add_foldseek_embeddings: False
 
 
 # model
@@ -12,7 +13,7 @@ min_protein_length: 30
 max_protein_length: -1 
 num_struct_embeddings_layers: 1
 use_struct_embeddings: True 
-predict_contacts: 'none'
+predict_contacts: 'dummy'
 predict_angles: False
 mask_angle_inputs_with_plddt: True
 
@@ -20,14 +21,14 @@ use_sorted_batching: True
 batch_limit: 32000 
 
 # training
-num_train_epochs: 50 
+num_train_epochs: 65 
 train_batch_size: 1 
 eval_batch_size: 1
 logging_steps: 400
 eval_steps: 5000
-lr_scheduler_type: 'linear' 
-warmup_ratio: 0.001 
-learning_rate: 0.00005 
+lr_scheduler_type: 'constant' 
+warmup_ratio: 0.
+learning_rate: 0.00001 
 
 # trainer
 train_split: train

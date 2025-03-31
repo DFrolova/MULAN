@@ -2,8 +2,6 @@
 # coding: utf-8
 
 import os
-os.environ["HF_HOME"] = '/workspace/data/transformers_cache'
-os.environ["WANDB_PROJECT"]="concat_protein_lm"
 import logging
 from datetime import datetime
 from argparse import ArgumentParser
@@ -24,7 +22,7 @@ from mulan.metrics import (
     preprocess_logits_for_metrics,
 )
 from mulan.model import StructEsmForMaskedLM
-from mulan.utils import load_config
+from mulan.utils import load_config, get_foldseek_tokenizer
 
 LOGGER = logging.getLogger(__name__)
 
@@ -39,20 +37,18 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     warnings.filterwarnings("ignore")
-    wandb.init(
-        dir='/workspace/data/wandb/',
-        name=args.exp_name,
-    )
 
     # folder to load config file
     config = load_config(args.config_filename)
     print(config)
 
     results_folder = config["results_folder"]
-    protein_data_path = config["protein_data_path"]  # raw_data_path
+    protein_data_path = config["protein_data_path"]
     saved_dataset_path_AFDB = config["saved_dataset_path_AFDB"]
-    split_ids_file = None
+    split_ids_file = None #'/workspace/data/dfrolova/AFDB/dataset_tmp_split_ids.json' #None
     use_foldseek_sequences = config["use_foldseek_sequences"]
+    add_foldseek_embeddings = config["add_foldseek_embeddings"]
+    print('add_foldseek_embeddings', add_foldseek_embeddings)
 
     min_protein_length = config["min_protein_length"]
     max_protein_length = config["max_protein_length"]
@@ -72,8 +68,7 @@ if __name__ == "__main__":
     now = datetime.now()
     date_time = now.strftime("%m.%d.%Y-%H:%M:%S")
     exp_name = args.exp_name
-    # exp_name_full = f'{exp_name}_{date_time}'
-    exp_name_full = exp_name
+    exp_name_full = f'{exp_name}_{date_time}'
     results_dir = os.path.join(results_folder, exp_name_full)
 
     if config["trained_adapter_name"] == 'None':
@@ -98,6 +93,7 @@ if __name__ == "__main__":
         predict_contacts=predict_contacts,
         use_foldseek_sequences=use_foldseek_sequences,
         is_experimental_structure=is_experimental_structure,
+        add_foldseek_embeddings=add_foldseek_embeddings,
     )
     eval_dataset = ProteinDataset(
         protein_data_path=protein_data_path, 
@@ -111,12 +107,19 @@ if __name__ == "__main__":
         predict_contacts=predict_contacts,
         use_foldseek_sequences=use_foldseek_sequences,
         is_experimental_structure=is_experimental_structure,
+        add_foldseek_embeddings=add_foldseek_embeddings,
     )
 
     if config["esm_checkpoint"] == 'None':
         esm_tokenizer = AutoTokenizer.from_pretrained('facebook/esm2_t6_8M_UR50D')
     else:
-        esm_tokenizer = AutoTokenizer.from_pretrained(config["esm_checkpoint"]) 
+        esm_tokenizer = AutoTokenizer.from_pretrained(config["esm_checkpoint"])
+
+    fs_tokenizer = None
+    if add_foldseek_embeddings:
+        use_foldseek_sequences = False
+        print('Warning: set use_foldseek_sequences = False because add_foldseek_embeddings is True') 
+        fs_tokenizer = get_foldseek_tokenizer()
 
     if use_foldseek_sequences:
         all_amino_acids = esm_tokenizer.all_tokens[5:]
@@ -126,6 +129,7 @@ if __name__ == "__main__":
     def data_collator(x): 
         return data_collate_fn_dynamic(
             x, esm_tokenizer=esm_tokenizer,
+            fs_tokenizer=fs_tokenizer,
             nan_value=np.deg2rad(train_dataset.tokenizer.nan_fill_value),
             predict_contacts=predict_contacts,
             max_prot_len=1022,
@@ -140,13 +144,15 @@ if __name__ == "__main__":
     print('Loading from', base_checkpoint)
     model = StructEsmForMaskedLM.from_pretrained(
         base_checkpoint,
-        device_map="auto",
+        # device_map="auto",
         num_struct_embeddings_layers=num_struct_embeddings_layers,
         struct_data_dim=struct_data_dim,
         use_struct_embeddings=use_struct_embeddings,
         predict_contacts=predict_contacts,
         predict_angles=predict_angles,
         mask_angle_inputs_with_plddt=mask_angle_inputs_with_plddt,
+        add_foldseek_embeddings=add_foldseek_embeddings,
+        fs_tokenizer=fs_tokenizer,
     )
 
     num_params_trainable = 0
@@ -165,9 +171,9 @@ if __name__ == "__main__":
         per_device_train_batch_size=config["train_batch_size"],
         per_device_eval_batch_size=config["eval_batch_size"],
 
-        save_steps=13815,
+        save_steps=7500,
         save_strategy="steps",
-        save_total_limit=3,
+        save_total_limit=11,
 
         prediction_loss_only=False,
         report_to='wandb',

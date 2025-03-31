@@ -8,7 +8,6 @@ from Bio.PDB.PDBIO import PDBIO
 
 import numpy as np
 import pandas as pd
-import os
 
 
 cif_parser = MMCIFParser(QUIET=True)

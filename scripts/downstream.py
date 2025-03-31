@@ -1,8 +1,4 @@
 import os
-os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
-os.environ["HF_HOME"] = '/workspace/data/transformers_cache'
-
 import torch
 import numpy as np
 from scipy import stats
@@ -274,7 +270,7 @@ def model_init_attn(num_tokens, embed_dim, device, conv_dropout, internal_embedd
 
 
 def run_cv_experiment(label_file, emb_path, agg_type, results_path, seed, param_grid,
-                      is_classifier, is_multilabel):
+                      is_classifier, is_multilabel, is_fast):
     
     def dict2str(dict_):
         return '  '.join([f'{key}={val}' for key, val in dict_.items()])
@@ -403,6 +399,7 @@ def run_cv_experiment(label_file, emb_path, agg_type, results_path, seed, param_
                 len(param_grid['internal_embedding']) * len(param_grid['last_embedding']) * \
                 len(param_grid['num_epochs'])
     exp_ind = 1
+    is_done = False
     for lr in param_grid['lr']:
         for conv_dropout in param_grid['conv_dropout']:
             for internal_embedding in param_grid['internal_embedding']:
@@ -440,6 +437,17 @@ def run_cv_experiment(label_file, emb_path, agg_type, results_path, seed, param_
                         exp_ind += 1
 
                         all_results[dict2str(cur_params)] = (cur_metrics, metrics_output)
+                        if is_fast:
+                            is_done = True
+                            break
+                    if is_done:
+                        break
+                if is_done:
+                    break
+            if is_done:
+                break
+        if is_done:
+            break
 
     all_metrics_output = []
     for i, split in enumerate(test_splits):
@@ -449,6 +457,10 @@ def run_cv_experiment(label_file, emb_path, agg_type, results_path, seed, param_
         print(best_test_metric, metrics_output)
         print('BEST PARAMS:', best_params)
         all_metrics_output.append(metrics_output)
+
+    if not is_classifier:
+        labels = scaler.inverse_transform(labels.reshape((1, -1)))
+        predictions = scaler.inverse_transform(predictions)
 
     save(labels, os.path.join(results_path, f'labels{postfix}.npy'))
     save_json(metrics_output, os.path.join(results_path, 
@@ -467,7 +479,7 @@ def run_training(lr, conv_dropout, internal_embedding, last_embedding, experimen
                  compute_metrics_fn, target_metric, batch_size, num_epochs, log_steps):
 
     training_args = TrainingArguments(
-        output_dir=os.path.join(results_path, 'checkpoints', f'checkpoints_{experiment}'),
+        output_dir=os.path.join(results_path, 'checkpoints', f'checkpoints_{experiment}_{seed}'),
         num_train_epochs=num_epochs,
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
@@ -522,6 +534,9 @@ if __name__ == "__main__":
     parser = ArgumentParser(description="Read file form Command line.")
     parser.add_argument("-c", "--config", dest="config_filename",
                         required=True, help="config file")
+    parser.add_argument("-f", "--fast", dest='is_fast',
+                        required=False, action='store_true', default=False, 
+                        help="if use no grid search for evaluation")
     args = parser.parse_args()
 
     config = load_config(args.config_filename)
@@ -545,8 +560,18 @@ if __name__ == "__main__":
                 'last_embedding': [512, 256],
                 'num_epochs': [200],
             }
+
+        if downstream_experiment == 'localization_deeploc' or \
+           downstream_experiment == 'localization_deeploc_binary' or \
+           downstream_experiment == 'metal':
+            is_classifier = True
+            is_multilabel = False
         
-        if downstream_experiment == 'thermostability':
+        if downstream_experiment == 'thermostability' or downstream_experiment == 'fluorescence':
+            is_classifier = False
+            is_multilabel = False
+
+        if downstream_experiment == 'binding':
             is_classifier = False
             is_multilabel = False
 
@@ -563,18 +588,10 @@ if __name__ == "__main__":
                 'num_epochs': [200],
             }
 
-        elif downstream_experiment == 'metal':
-            is_classifier = True
-            is_multilabel = False
-
         elif downstream_experiment == 'humanppi':
             is_classifier = True
             is_multilabel = False
             param_grid['conv_dropout'] = [0.2]
-
-        elif downstream_experiment == 'fluorescence':
-            is_classifier = False
-            is_multilabel = False
 
         elif downstream_experiment.startswith('secondary_structure_pdb'):
             exp_path = os.path.join(downstream_datasets_path, 'secondary_structure_pdb')
@@ -602,18 +619,19 @@ if __name__ == "__main__":
         os.makedirs(results_path, exist_ok=True)
         print('Embeddings:', emb_path_common)
 
-        seed = 0
+        seed = 14
         agg_type = '_avg'
         for model_i, model_name in enumerate(all_models):
             emb_path = os.path.join(emb_path_common, model_name)
-            print(f'START: {model_i + 1}/{len(all_models)} {model_name}')
+            print(f'START: {model_i + 1}/{len(all_models)} {model_name} seed={seed}')
             for label_file in label_files:
                 print(label_file)
                 exp_name, exp_metrics, best_test_metric = run_cv_experiment(label_file, emb_path, 
                                     agg_type, results_path, seed, 
                                     param_grid=param_grid, 
                                     is_classifier=is_classifier,
-                                    is_multilabel=is_multilabel)
+                                    is_multilabel=is_multilabel,
+                                    is_fast=args.is_fast)
                 all_results[exp_name] = (best_test_metric, exp_metrics)
                 
                 print()

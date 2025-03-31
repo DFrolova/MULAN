@@ -6,31 +6,32 @@ saved_dataset_path_AFDB: '/workspace/data/docking/lang_model/AFDB_data/new_datas
 use_foldseek_sequences: False
 add_foldseek_embeddings: False
 
+
 # model
-esm_checkpoint: 'facebook/esm2_t6_8M_UR50D'
+esm_checkpoint: 'facebook/esm2_t33_650M_UR50D'
 min_protein_length: 30 
 max_protein_length: -1
 num_struct_embeddings_layers: 1
-use_struct_embeddings: True
+use_struct_embeddings: True 
 predict_contacts: 'dummy'
 predict_angles: False
 mask_angle_inputs_with_plddt: True
 
 use_sorted_batching: True
-batch_limit: 12000 
+batch_limit: 10000
 
 # training
 num_train_epochs: 20
 train_batch_size: 1 
 eval_batch_size: 1
-logging_steps: 200
+logging_steps: 400
 eval_steps: 5000
-lr_scheduler_type: 'constant'
-warmup_ratio: 0. 
-learning_rate: 0.0001
+lr_scheduler_type: 'constant' 
+warmup_ratio: 0.
+learning_rate: 0.000005 
 
 # trainer
 train_split: train
-lr_decrease_ratio: 0.2
+lr_decrease_ratio: 0.2 
 
 trained_adapter_name: None

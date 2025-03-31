@@ -18,7 +18,9 @@ def flatten_list(dataset_list):
 
 
 def get_downstream_datasets(saved_dataset_path, dataset_names, 
-                            batch_limit, use_foldseek_sequences, is_experimental_structure):
+                            batch_limit, use_foldseek_sequences, 
+                            add_foldseek_embeddings,
+                            is_experimental_structure):
     min_protein_length = 1
     max_protein_length = -1
     split_ids_file = None
@@ -41,6 +43,7 @@ def get_downstream_datasets(saved_dataset_path, dataset_names,
             batch_limit=batch_limit,
             predict_contacts=predict_contacts,
             use_foldseek_sequences=use_foldseek_sequences,
+            add_foldseek_embeddings=add_foldseek_embeddings,
             is_experimental_structure=is_experimental_structure,
             )
         all_datasets[chunk_id] = dataset
@@ -49,7 +52,7 @@ def get_downstream_datasets(saved_dataset_path, dataset_names,
 
 def get_embeddings(dataset, model, esm_tokenizer,
                    protein_level, required_positions, 
-                   mask_angle_inputs_with_plddt, use_foldseek_sequences):    
+                   mask_angle_inputs_with_plddt, use_foldseek_sequences, fs_tokenizer, shift):    
     mean_embeddings = []
     protein_embeddings = []
     all_names = []
@@ -61,6 +64,7 @@ def get_embeddings(dataset, model, esm_tokenizer,
             one_letter_aas = dataset.tokenizer.one_letter_aas
 
         return data_collate_fn_dynamic(x, esm_tokenizer=esm_tokenizer,
+                          fs_tokenizer=fs_tokenizer,
                           nan_value=np.deg2rad(dataset.tokenizer.nan_fill_value),
                           predict_contacts='none',
                           max_prot_len=100000000000000, # big number equals to no protein cropping
@@ -74,7 +78,9 @@ def get_embeddings(dataset, model, esm_tokenizer,
     
     with torch.no_grad():
         for i, batch in enumerate(tqdm(dataloader)):
-            struct_inputs = [struct_inp.to(device) for struct_inp in batch['struct_inputs']]
+            struct_inputs = [struct_inp.to(device) if type(struct_inp) == torch.Tensor else [] 
+                             for struct_inp in batch['struct_inputs']]
+
             res = model(
                 input_ids=batch['input_ids'].to(device), 
                 attention_mask=batch['attention_mask'].to(device),
@@ -87,7 +93,7 @@ def get_embeddings(dataset, model, esm_tokenizer,
 
             if protein_level:
                 for p_ind in range(len(lengths)):
-                    mean_embeddings.append(res[p_ind, 1:lengths[p_ind] + 1].mean(dim=0).cpu())
+                    mean_embeddings.append(res[p_ind, shift:lengths[p_ind] + shift].mean(dim=0).cpu())
 
             else:
                 for p_ind in range(len(lengths)):
@@ -95,7 +101,7 @@ def get_embeddings(dataset, model, esm_tokenizer,
                         cur_positions = required_positions[i][p_ind] - 1
                     else:
                         cur_positions = range(lengths[p_ind])
-                    mean_embeddings.extend(res[p_ind, 1:lengths[p_ind] + 1][cur_positions].cpu())
+                    mean_embeddings.extend(res[p_ind, shift:lengths[p_ind] + shift][cur_positions].cpu())
                 
                 for p_ind in range(len(lengths)):
                     all_names.append([f'{dataset.protein_names[i][p_ind]}_{pos}' for pos in range(lengths[p_ind])])
@@ -114,14 +120,18 @@ def evaluate_downstream_task(model, esm_tokenizer, saved_dataset_path,
                              downstream_dataset_path,
                              batch_limit, mask_angle_inputs_with_plddt,
                              protein_level, use_foldseek_sequences,
+                             add_foldseek_embeddings,
+                             fs_tokenizer,
                              is_experimental_structure=False,
-                             dataset_names=['valid', 'test', 'train']):
+                             dataset_names=['valid', 'test', 'train'],
+                             shift=1):
 
     all_datasets = get_downstream_datasets(
         saved_dataset_path=saved_dataset_path, 
         dataset_names=dataset_names,
         batch_limit=batch_limit,
         use_foldseek_sequences=use_foldseek_sequences,
+        add_foldseek_embeddings=add_foldseek_embeddings,
         is_experimental_structure=is_experimental_structure,
     )
 
@@ -139,8 +149,10 @@ def evaluate_downstream_task(model, esm_tokenizer, saved_dataset_path,
             esm_tokenizer=esm_tokenizer,
             protein_level=protein_level,
             use_foldseek_sequences=use_foldseek_sequences,
+            fs_tokenizer=fs_tokenizer,
             required_positions=None,
             mask_angle_inputs_with_plddt=mask_angle_inputs_with_plddt,
+            shift=shift,
         )
 
         if protein_level:
@@ -157,3 +169,4 @@ def evaluate_downstream_task(model, esm_tokenizer, saved_dataset_path,
         print(len(names), type(mean_embeddings), mean_embeddings.shape)
         save(mean_embeddings, os.path.join(downstream_dataset_path, 
                                         f'{dataset_name}_avg_embeddings.npy.gz'), compression=1)
+        

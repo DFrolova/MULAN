@@ -1,6 +1,7 @@
 # Data paths
 results_folder: '/workspace/data/docking/lang_model/data/lora_train_results/'
 use_foldseek_sequences: False
+add_foldseek_embeddings: False
 
 # model
 esm_checkpoint: 'facebook/esm2_t12_35M_UR50D'
@@ -11,14 +12,16 @@ mask_angle_inputs_with_plddt: True
 batch_limit: 12000 
 predict_contacts: 'none'
 
-trained_adapter_name: 'mulan_esm2' 
+trained_adapter_name: 'DFrolova/MULAN-ESM2-35M' 
 
 # downstream data
+calc_localization: True
+calc_localization_binary: True
 calc_thermostability: True
 calc_go: True
 calc_metal: True 
 calc_humanppi: True
 calc_fluorescence: True
-calc_ss_pdb: True
+calc_ss_pdb: False
 
 downstream_datasets_path: '/workspace/data/docking/downstream_tasks/mulan_datasets'
