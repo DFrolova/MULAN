@@ -89,7 +89,11 @@ During preprocessing, foldseek sequences are also extracted.
 This is done because SaProt-initialized MULAN uses Foldseek.
 If you use only ESM-2, you can pass argument `extract_foldseek_in_tokenizer=False` into the `ProteinDataset` class.
 
-3) **Load the model.** Load the pre-trained model from Huggingface [MULAN-small](https://huggingface.co/DFrolova/MULAN-small).
+3) **Load the model.** Load the pre-trained model from Huggingface. Available models:
+   - [MULAN-small 9M](https://huggingface.co/DFrolova/MULAN-small)
+   - [MULAN-ESM2 M ](https://huggingface.co/DFrolova/MULAN-ESM2-35M)
+   - [MULAN-ESM2 L](https://huggingface.co/DFrolova/MULAN-ESM2-650M)
+   
 ```python
 from mulan.model import StructEsmForMaskedLM
 
