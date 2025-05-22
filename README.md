@@ -1,9 +1,10 @@
 # MULAN: Multimodal Protein Language Model for Sequence and Structure Encoding
 
-This is an official implementation of the paper [MULAN: Multimodal Protein Language Model for Sequence and Structure Encoding](https://www.biorxiv.org/content/10.1101/2024.05.30.596565v1).
+This is an official implementation of the paper [MULAN: Multimodal Protein Language Model for Sequence and Structure Encoding](https://academic.oup.com/bioinformaticsadvances/advance-article/doi/10.1093/bioadv/vbaf117/8139638).
 
 ## News
 **31/03/2025** Added MULAN-ESM2 checkpoints for medium and large models, updated MULAN-small. Code update: MULAN now uses rotary positional embeddings and has improved quality. 
+**20/05/2025** MULAN is published in Bioinformatics Advances journal. 
 
 ## Overview
 MULAN is a MULtimodal encoder PLM for both sequence and ANgle-based structure processing. 
@@ -216,12 +217,16 @@ The name that you pass during training is used to create the output folder with 
 If you use MULAN in your work, please cite our paper:
 
 ```
-@article{frolova2024mulan,
-  title={MULAN: Multimodal Protein Language Model for Sequence and Structure Encoding},
-  author={Frolova, Daria and Pak, Marina and Litvin, Anna and Sharov, Ilya and Ivankov, Dmitry and Oseledets, Ivan},
-  journal={bioRxiv},
-  pages={2024--05},
-  year={2024},
-  publisher={Cold Spring Harbor Laboratory}
+@article{10.1093/bioadv/vbaf117,
+    author = {Frolova, Daria and Pak, Marina and Litvin, Anna and Sharov, Ilya and Ivankov, Dmitry and Oseledets, Ivan},
+    title = {MULAN: Multimodal Protein Language Model for Sequence and Structure Encoding},
+    journal = {Bioinformatics Advances},
+    pages = {vbaf117},
+    year = {2025},
+    month = {05},
+    issn = {2635-0041},
+    doi = {10.1093/bioadv/vbaf117},
+    url = {https://doi.org/10.1093/bioadv/vbaf117},
+    eprint = {https://academic.oup.com/bioinformaticsadvances/advance-article-pdf/doi/10.1093/bioadv/vbaf117/63255975/vbaf117.pdf},
 }
 ```
